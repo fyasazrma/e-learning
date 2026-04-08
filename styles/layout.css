@@ -1,0 +1,56 @@
+.dashboard-layout {
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  gap: 24px;
+  padding: 24px;
+}
+
+.dashboard-main {
+  min-width: 0;
+}
+
+.dashboard-topbar {
+  padding: 22px 26px;
+  margin-bottom: 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+}
+
+.topbar-title h1 {
+  font-size: 1.7rem;
+  margin-bottom: 6px;
+}
+
+.topbar-title p {
+  color: var(--text-soft);
+}
+
+.topbar-profile {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.profile-avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 999px;
+  background: var(--surface);
+  box-shadow: var(--shadow-button);
+  display: grid;
+  place-items: center;
+  font-weight: 800;
+  color: var(--accent);
+}
+
+.profile-info strong {
+  display: block;
+}
+
+.profile-info span {
+  color: var(--text-soft);
+  font-size: 0.94rem;
+}

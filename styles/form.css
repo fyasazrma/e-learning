@@ -1,0 +1,152 @@
+.auth-page {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 32px 16px;
+  background: var(--bg);
+}
+
+.auth-wrapper {
+  width: 100%;
+  max-width: 500px;
+}
+
+.auth-card {
+  width: 100%;
+  padding: 38px 28px 30px;
+  border-radius: 30px;
+}
+
+.auth-top {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 24px;
+}
+
+.auth-title {
+  text-align: center;
+  font-size: 2.3rem;
+  font-weight: 800;
+  margin-bottom: 10px;
+  color: var(--text);
+}
+
+.auth-subtitle {
+  text-align: center;
+  color: var(--text-soft);
+  margin-bottom: 28px;
+  line-height: 1.7;
+}
+
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.form-label {
+  margin-bottom: 10px;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.input-wrap {
+  position: relative;
+  width: 100%;
+}
+
+.neu-input,
+.neu-select {
+  width: 100%;
+  min-height: 56px;
+  border: none;
+  outline: none;
+  border-radius: 18px;
+  background: var(--surface);
+  box-shadow: var(--shadow-inset);
+  color: var(--text);
+  transition: var(--transition);
+}
+
+.neu-input {
+  padding: 0 48px 0 48px;
+}
+
+.neu-select {
+  padding: 0 18px;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+}
+
+.neu-input::placeholder {
+  color: #8c98ab;
+}
+
+.input-icon-left,
+.input-icon-right {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #7f8aa0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.input-icon-left {
+  left: 16px;
+}
+
+.input-icon-right {
+  right: 16px;
+  cursor: pointer;
+}
+
+.auth-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 2px;
+  color: var(--text-soft);
+  font-size: 0.95rem;
+}
+
+.auth-submit {
+  width: 100%;
+  min-height: 54px;
+  margin-top: 4px;
+}
+
+.auth-bottom {
+  text-align: center;
+  margin-top: 2px;
+  color: var(--text-soft);
+}
+
+.auth-bottom a {
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.dynamic-field {
+  animation: fadeSlideDown 0.35s ease;
+}
+
+@keyframes fadeSlideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

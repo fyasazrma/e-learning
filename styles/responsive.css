@@ -1,0 +1,35 @@
+@media (max-width: 1100px) {
+  .hero-wrapper,
+  .features-grid,
+  .flow-grid,
+  .roles-grid,
+  .dashboard-grid,
+  .dashboard-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .sidebar {
+    min-height: auto;
+  }
+}
+
+@media (max-width: 640px) {
+  .hero-title {
+    font-size: 2.2rem;
+  }
+
+  .hero-content,
+  .cta-box {
+    padding: 26px;
+  }
+
+  .auth-card,
+  .dashboard-topbar {
+    padding: 20px 18px;
+  }
+
+  .auth-row {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
