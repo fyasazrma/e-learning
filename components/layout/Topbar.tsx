@@ -1,9 +1,25 @@
 "use client";
 
-import { useState } from "react";
-import { ClientUser, clearClientAuth } from "@/lib/client-auth";
-import ThemeToggle from "@/components/common/ThemeToggle";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import ThemeToggle from "@/components/common/ThemeToggle";
+import {
+  ClientUser,
+  clearClientAuth,
+  setClientUser,
+} from "@/lib/client-auth";
+
+type ProgressItem = {
+  _id?: string;
+  studentId?: string;
+  topicId?: string;
+  completedMaterials?: number;
+  completedExercises?: number;
+  completedQuizzes?: number;
+  currentLevel?: "easy" | "medium" | "hard";
+  averageScore?: number;
+  lastFeedback?: string;
+};
 
 export default function Topbar({ user }: { user: ClientUser | null }) {
   const router = useRouter();
@@ -11,12 +27,169 @@ export default function Topbar({ user }: { user: ClientUser | null }) {
   const [openDropdown, setOpenDropdown] = useState(false);
   const [openProfile, setOpenProfile] = useState(false);
   const [name, setName] = useState(user?.fullName || "");
+  const [saving, setSaving] = useState(false);
+  const [progress, setProgress] = useState<ProgressItem[]>([]);
+  const [loadingProgress, setLoadingProgress] = useState(false);
 
   const role = user?.role || "mahasiswa";
+  const email = user?.email || "-";
 
   const handleLogout = () => {
     clearClientAuth();
     router.push("/login");
+  };
+
+  useEffect(() => {
+    const fetchProgress = async () => {
+      if (!user?.id) return;
+
+      try {
+        setLoadingProgress(true);
+
+        const res = await fetch(
+          `/api/learning-progress?studentId=${user.id}`,
+          {
+            cache: "no-store",
+          }
+        );
+
+        const result = await res.json();
+        setProgress(Array.isArray(result.data) ? result.data : []);
+      } catch (error) {
+        console.error("FETCH_PROGRESS_ERROR", error);
+        setProgress([]);
+      } finally {
+        setLoadingProgress(false);
+      }
+    };
+
+    if (openProfile) {
+      fetchProgress();
+    }
+  }, [openProfile, user?.id]);
+
+  const summary = useMemo(() => {
+    const totalMaterials = progress.reduce(
+      (sum, item) => sum + (item.completedMaterials || 0),
+      0
+    );
+
+    const totalExercises = progress.reduce(
+      (sum, item) => sum + (item.completedExercises || 0),
+      0
+    );
+
+    const totalQuizzes = progress.reduce(
+      (sum, item) => sum + (item.completedQuizzes || 0),
+      0
+    );
+
+    const avgScore =
+      progress.length > 0
+        ? Math.round(
+            progress.reduce((sum, item) => sum + (item.averageScore || 0), 0) /
+              progress.length
+          )
+        : 0;
+
+    const levelWeight = {
+      easy: 1,
+      medium: 2,
+      hard: 3,
+    } as const;
+
+    const avgLevelValue =
+      progress.length > 0
+        ? Math.round(
+            progress.reduce(
+              (sum, item) => sum + levelWeight[item.currentLevel || "easy"],
+              0
+            ) / progress.length
+          )
+        : 1;
+
+    const currentLevel =
+      avgLevelValue >= 3 ? "Hard" : avgLevelValue >= 2 ? "Medium" : "Easy";
+
+    const totalActivity = totalMaterials + totalExercises + totalQuizzes;
+    const overallProgress = Math.min(totalActivity * 5, 100);
+
+    const lastFeedback =
+      progress.find((item) => item.lastFeedback && item.lastFeedback.trim())
+        ?.lastFeedback || "Belum ada insight terbaru.";
+
+    let nextAction = "Mulai lanjutkan materi berikutnya.";
+    if (avgScore < 60) {
+      nextAction = "Fokus ulangi quiz dan latihan untuk meningkatkan skor.";
+    } else if (totalExercises < totalMaterials) {
+      nextAction = "Coba kerjakan lebih banyak latihan untuk menyeimbangkan teori.";
+    } else if (overallProgress >= 80) {
+      nextAction = "Kamu hampir selesai. Lanjutkan topik terakhir.";
+    }
+
+    let adaptiveInsight = "Performa belajar kamu masih berkembang stabil.";
+    if (avgScore >= 80) {
+      adaptiveInsight = "Kamu kuat di pemahaman materi. Cocok naik ke level berikutnya.";
+    } else if (avgScore >= 60) {
+      adaptiveInsight =
+        "Pemahamanmu cukup baik, tapi masih perlu konsistensi di latihan.";
+    } else if (progress.length > 0) {
+      adaptiveInsight =
+        "Kamu butuh lebih banyak latihan dan quiz agar rekomendasi adaptif makin akurat.";
+    }
+
+    return {
+      totalMaterials,
+      totalExercises,
+      totalQuizzes,
+      avgScore,
+      currentLevel,
+      overallProgress,
+      lastFeedback,
+      nextAction,
+      adaptiveInsight,
+    };
+  }, [progress]);
+
+  const handleSave = async () => {
+    if (!user?.id) return;
+
+    try {
+      setSaving(true);
+
+      const res = await fetch(`/api/users/${user.id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          fullName: name,
+          role: user.role,
+          email: user.email,
+          npm: user.npm || "",
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.message || "Gagal update user");
+      }
+
+      setClientUser({
+        ...user,
+        fullName: name,
+      });
+
+      alert("Nama berhasil diupdate.");
+      setOpenProfile(false);
+      router.refresh();
+    } catch (error) {
+      console.error("UPDATE_PROFILE_ERROR", error);
+      alert("Gagal update nama.");
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -36,99 +209,212 @@ export default function Topbar({ user }: { user: ClientUser | null }) {
             position: "relative",
             cursor: "pointer",
           }}
-          onClick={() => setOpenDropdown(!openDropdown)}
+          onClick={() => setOpenDropdown((prev) => !prev)}
         >
           <ThemeToggle />
 
-          <div className="profile-avatar">{name.charAt(0)}</div>
+          <div className="profile-avatar">
+            {name?.charAt(0)?.toUpperCase() || "U"}
+          </div>
+
           <div className="profile-info">
             <strong>{name}</strong>
             <span style={{ textTransform: "capitalize" }}>{role}</span>
           </div>
 
-          {/* DROPDOWN */}
           {openDropdown && (
-            <div
-              className="neu-card"
-              style={{
-                position: "absolute",
-                top: "60px",
-                right: 0,
-                padding: "12px",
-                minWidth: "180px",
-                zIndex: 10,
-              }}
-            >
-              <div
-                style={{ padding: "8px", cursor: "pointer" }}
+            <div className="profile-dropdown-menu neu-card">
+              <button
+                type="button"
+                className="profile-dropdown-item"
                 onClick={() => {
                   setOpenProfile(true);
                   setOpenDropdown(false);
                 }}
               >
-                Profile
-              </div>
+                Lihat Profil
+              </button>
 
-              <div
-                style={{ padding: "8px", cursor: "pointer" }}
+              <button
+                type="button"
+                className="profile-dropdown-item danger"
                 onClick={handleLogout}
               >
                 Logout
-              </div>
+              </button>
             </div>
           )}
         </div>
       </div>
 
-      {/* PROFILE MODAL */}
       {openProfile && (
-        <div
-          style={{
-            position: "fixed",
-            inset: 0,
-            background: "rgba(0,0,0,0.4)",
-            display: "grid",
-            placeItems: "center",
-            zIndex: 20,
-          }}
-        >
-          <div
-            className="neu-card"
-            style={{
-              padding: "24px",
-              width: "400px",
-              maxWidth: "90%",
-            }}
-          >
-            <h2 style={{ marginBottom: "16px" }}>Profile</h2>
+        <div className="profile-modal-overlay">
+          <div className="profile-modal-card neu-card">
+            <div className="profile-modal-header">
+              <div className="profile-modal-title-wrap">
+                <span className="profile-modal-icon">👤</span>
+                <h2>Profile</h2>
+              </div>
 
-            {/* EDIT NAME */}
-            <label>Nama</label>
-            <input
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              style={{
-                width: "100%",
-                padding: "8px",
-                marginTop: "6px",
-                marginBottom: "16px",
-              }}
-            />
+              <button
+                type="button"
+                className="profile-close-x"
+                onClick={() => setOpenProfile(false)}
+              >
+                ✕
+              </button>
+            </div>
 
-            {/* PROGRESS (DUMMY) */}
-            <div style={{ marginBottom: "16px" }}>
-              <h3>Progress</h3>
+            <div className="profile-hero">
+              <div className="profile-hero-avatar">
+                {name?.charAt(0)?.toUpperCase() || "U"}
+              </div>
 
-              <div style={{ fontSize: "14px" }}>
-                <p>AI Basics - 80%</p>
-                <p>Machine Learning - 40%</p>
-                <p>Deep Learning - 10%</p>
+              <div className="profile-hero-info">
+                <strong>{name}</strong>
+                <span>{role}</span>
+                <small>{email}</small>
+              </div>
+
+              <div className="profile-level-badge">
+                Level {summary.currentLevel}
               </div>
             </div>
 
-            {/* ACTION */}
-            <div style={{ display: "flex", gap: "8px" }}>
+            <div className="profile-section">
+              <label className="profile-label">Nama</label>
+              <input
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                className="profile-input"
+                placeholder="Masukkan nama"
+              />
+            </div>
+
+            <div className="profile-grid-summary">
+              <div className="profile-mini-card">
+                <span>Materials</span>
+                <strong>{summary.totalMaterials}</strong>
+              </div>
+
+              <div className="profile-mini-card">
+                <span>Exercises</span>
+                <strong>{summary.totalExercises}</strong>
+              </div>
+
+              <div className="profile-mini-card">
+                <span>Quizzes</span>
+                <strong>{summary.totalQuizzes}</strong>
+              </div>
+
+              <div className="profile-mini-card">
+                <span>Avg Score</span>
+                <strong>{summary.avgScore}%</strong>
+              </div>
+            </div>
+
+            <div className="profile-section">
+              <div className="profile-section-title">
+                <span>📈</span>
+                <h3>Overall Progress</h3>
+              </div>
+
+              <div className="profile-overall-wrap">
+                <div className="profile-progress-meta">
+                  <span>Kemajuan belajar keseluruhan</span>
+                  <strong>{summary.overallProgress}%</strong>
+                </div>
+
+                <div className="profile-progress-bar">
+                  <div
+                    className="profile-progress-fill"
+                    style={{ width: `${summary.overallProgress}%` }}
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="profile-section">
+              <div className="profile-section-title">
+                <span>📚</span>
+                <h3>Progress per Topik</h3>
+              </div>
+
+              {loadingProgress ? (
+                <div className="profile-empty-state">Memuat progress...</div>
+              ) : progress.length === 0 ? (
+                <div className="profile-empty-state">
+                  Belum ada progress yang tersimpan.
+                </div>
+              ) : (
+                <div className="profile-topic-list">
+                  {progress.map((item, index) => {
+                    const totalTopicActivity =
+                      (item.completedMaterials || 0) +
+                      (item.completedExercises || 0) +
+                      (item.completedQuizzes || 0);
+
+                    const topicPercent = Math.min(totalTopicActivity * 5, 100);
+
+                    return (
+                      <div className="profile-topic-item" key={item._id || index}>
+                        <div className="profile-topic-head">
+                          <div>
+                            <strong>Topik {index + 1}</strong>
+                            <p>
+                              Materi {item.completedMaterials || 0} • Latihan{" "}
+                              {item.completedExercises || 0} • Quiz{" "}
+                              {item.completedQuizzes || 0}
+                            </p>
+                          </div>
+
+                          <span className="profile-topic-percent">
+                            {topicPercent}%
+                          </span>
+                        </div>
+
+                        <div className="profile-progress-bar">
+                          <div
+                            className="profile-progress-fill"
+                            style={{ width: `${topicPercent}%` }}
+                          />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            <div className="profile-insight-grid">
+              <div className="profile-info-card">
+                <div className="profile-section-title small">
+                  <span>🎯</span>
+                  <h3>Next Step</h3>
+                </div>
+                <p>{summary.nextAction}</p>
+              </div>
+
+              <div className="profile-info-card">
+                <div className="profile-section-title small">
+                  <span>🤖</span>
+                  <h3>Adaptive Insight</h3>
+                </div>
+                <p>{summary.adaptiveInsight}</p>
+              </div>
+
+              <div className="profile-info-card full">
+                <div className="profile-section-title small">
+                  <span>📝</span>
+                  <h3>Feedback Terakhir</h3>
+                </div>
+                <p>{summary.lastFeedback}</p>
+              </div>
+            </div>
+
+            <div className="profile-modal-actions">
               <button
+                type="button"
                 onClick={() => setOpenProfile(false)}
                 className="neu-button"
               >
@@ -136,13 +422,12 @@ export default function Topbar({ user }: { user: ClientUser | null }) {
               </button>
 
               <button
+                type="button"
                 className="neu-button"
-                onClick={() => {
-                  alert("Nama berhasil diubah (dummy)");
-                  setOpenProfile(false);
-                }}
+                onClick={handleSave}
+                disabled={saving}
               >
-                Save
+                {saving ? "Saving..." : "Save"}
               </button>
             </div>
           </div>

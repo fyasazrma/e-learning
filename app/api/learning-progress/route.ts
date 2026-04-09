@@ -6,19 +6,19 @@ export async function GET(req: Request) {
     await connectDB();
 
     const { searchParams } = new URL(req.url);
-    const userId = searchParams.get("userId");
+    const studentId = searchParams.get("studentId");
 
-    if (!userId) {
+    if (!studentId) {
       return Response.json(
         {
           success: false,
-          message: "userId wajib dikirim",
+          message: "studentId wajib dikirim",
         },
         { status: 400 }
       );
     }
 
-    const progress = await LearningProgress.find({ userId })
+    const progress = await LearningProgress.find({ studentId })
       .sort({ createdAt: -1 })
       .lean();
 
