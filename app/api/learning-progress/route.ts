@@ -1,11 +1,24 @@
 import { connectDB } from "@/lib/mongodb";
 import LearningProgress from "@/models/LearningProgress";
 
-export async function GET() {
+export async function GET(req: Request) {
   try {
     await connectDB();
 
-    const progress = await LearningProgress.find({})
+    const { searchParams } = new URL(req.url);
+    const userId = searchParams.get("userId");
+
+    if (!userId) {
+      return Response.json(
+        {
+          success: false,
+          message: "userId wajib dikirim",
+        },
+        { status: 400 }
+      );
+    }
+
+    const progress = await LearningProgress.find({ userId })
       .sort({ createdAt: -1 })
       .lean();
 
