@@ -53,7 +53,12 @@ export async function PUT(request: Request, { params }: Params) {
       topicId,
       instruction,
       level,
+      questionType,
+      options,
       correctAnswer,
+      explanation,
+      aiTip,
+      recommendedLevel,
       isPublished,
     } = body;
 
@@ -76,7 +81,19 @@ export async function PUT(request: Request, { params }: Params) {
         ...(topicId !== undefined && { topicId: topicId || null }),
         ...(instruction !== undefined && { instruction }),
         ...(level !== undefined && { level }),
+        ...(questionType !== undefined && { questionType }),
+        ...(options !== undefined && {
+          options:
+            questionType === "multiple_choice" || existingExercise.questionType === "multiple_choice"
+              ? (options || []).filter(
+                  (item: any) => item?.label?.trim() && item?.value?.trim()
+                )
+              : [],
+        }),
         ...(correctAnswer !== undefined && { correctAnswer }),
+        ...(explanation !== undefined && { explanation }),
+        ...(aiTip !== undefined && { aiTip }),
+        ...(recommendedLevel !== undefined && { recommendedLevel }),
         ...(isPublished !== undefined && { isPublished }),
       },
       { new: true }

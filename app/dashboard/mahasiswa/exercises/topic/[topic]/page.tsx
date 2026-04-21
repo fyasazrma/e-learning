@@ -54,7 +54,7 @@ export default function TopicLevelsPage() {
             </p>
 
             <Link
-              href={`/dashboard/mahasiswa/exercises/${topic}/${level.slug}`}
+              href={`/dashboard/mahasiswa/exercises/topic/${topic}/${level.slug}`}
               className="neu-button"
             >
               Mulai Level

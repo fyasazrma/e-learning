@@ -9,6 +9,8 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const topic = searchParams.get("topic");
     const level = searchParams.get("level");
+    const createdBy = searchParams.get("createdBy");
+    const includeAll = searchParams.get("includeAll") === "true";
 
     let topicDoc = null;
 
@@ -26,16 +28,22 @@ export async function GET(request: Request) {
       }
     }
 
-    const baseQuery: Record<string, any> = {
-      isPublished: true,
-    };
+    const baseQuery: Record<string, any> = {};
+
+    if (!includeAll) {
+      baseQuery.isPublished = true;
+    }
 
     if (level) {
       baseQuery.level = level.toLowerCase();
     }
 
+    if (createdBy) {
+      baseQuery.createdBy = createdBy;
+    }
+
     const allExercises = await Exercise.find(baseQuery)
-      .sort({ createdAt: 1 })
+      .sort({ createdAt: -1 })
       .lean();
 
     const filteredExercises = topicDoc
@@ -45,7 +53,7 @@ export async function GET(request: Request) {
       : allExercises;
 
     const finalExercises =
-      topic && level ? filteredExercises.slice(0, 3) : filteredExercises;
+      topic && level && !includeAll ? filteredExercises.slice(0, 3) : filteredExercises;
 
     return Response.json({
       success: true,
@@ -76,15 +84,35 @@ export async function POST(request: Request) {
       topicId,
       instruction,
       level,
+      questionType,
+      options,
       correctAnswer,
+      explanation,
+      aiTip,
+      recommendedLevel,
+      createdBy,
       isPublished,
     } = body;
 
-    if (!title || !instruction || !level || !correctAnswer) {
+    if (!title || !instruction || !level || !correctAnswer || !questionType) {
       return Response.json(
         {
           success: false,
-          message: "title, instruction, level, dan correctAnswer wajib diisi",
+          message:
+            "title, instruction, level, questionType, dan correctAnswer wajib diisi",
+        },
+        { status: 400 }
+      );
+    }
+
+    if (
+      questionType === "multiple_choice" &&
+      (!Array.isArray(options) || options.length < 2)
+    ) {
+      return Response.json(
+        {
+          success: false,
+          message: "Pilihan ganda wajib punya minimal 2 opsi",
         },
         { status: 400 }
       );
@@ -95,7 +123,18 @@ export async function POST(request: Request) {
       topicId: topicId || null,
       instruction,
       level,
+      questionType,
+      options:
+        questionType === "multiple_choice"
+          ? (options || []).filter(
+              (item: any) => item?.label?.trim() && item?.value?.trim()
+            )
+          : [],
       correctAnswer,
+      explanation: explanation || "",
+      aiTip: aiTip || "",
+      recommendedLevel: recommendedLevel || level,
+      createdBy: createdBy || null,
       isPublished: typeof isPublished === "boolean" ? isPublished : true,
     });
 

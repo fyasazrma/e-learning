@@ -45,7 +45,7 @@ export default function MahasiswaExercisesPage() {
             </p>
 
             <Link
-              href={`/dashboard/mahasiswa/exercises/${topic.slug}`}
+              href={`/dashboard/mahasiswa/exercises/topic/${topic.slug}`}
               className="neu-button"
             >
               Pilih Topik

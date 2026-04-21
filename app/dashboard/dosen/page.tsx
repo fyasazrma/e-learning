@@ -8,7 +8,6 @@ import {
   GraduationCap,
   BarChart3,
   MessageSquareMore,
-  Sparkles,
   ArrowRight,
 } from "lucide-react";
 
@@ -265,8 +264,13 @@ export default function DosenDashboardPage() {
               <Link href="/dashboard/dosen/materials" className="neu-button">
                 Kelola Materials
               </Link>
+
               <Link href="/dashboard/dosen/exercises" className="neu-button">
                 Kelola Exercises
+              </Link>
+
+              <Link href="/dashboard/dosen/exercises/create" className="neu-button">
+                + Tambah Exercise
               </Link>
             </div>
           </div>
@@ -391,6 +395,9 @@ export default function DosenDashboardPage() {
           </Link>
           <Link href="/dashboard/dosen/exercises" className="neu-button">
             Exercises
+          </Link>
+          <Link href="/dashboard/dosen/exercises/create" className="neu-button">
+            Tambah Exercise
           </Link>
           <Link href="/dashboard/dosen/students" className="neu-button">
             Students

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import SectionTitle from "@/components/common/SectionTitle";
+import { getClientUser } from "@/lib/client-auth";
 
 type MaterialType = {
   _id: string;
@@ -18,9 +19,11 @@ type MaterialType = {
 
 export default function DosenMaterialsPage() {
   const router = useRouter();
+  const user = getClientUser();
 
   const [materials, setMaterials] = useState<MaterialType[]>([]);
   const [loading, setLoading] = useState(true);
+  const [requestingId, setRequestingId] = useState<string | null>(null);
 
   const fetchMaterials = async () => {
     try {
@@ -44,26 +47,44 @@ export default function DosenMaterialsPage() {
     fetchMaterials();
   }, []);
 
-  const handleDelete = async (id: string) => {
-    const ok = confirm("Yakin ingin menghapus materi ini?");
-    if (!ok) return;
+  const handleDeleteRequest = async (item: MaterialType) => {
+    const reason = window.prompt(
+      `Tulis alasan penghapusan untuk "${item.title}":`,
+      "Materi perlu diperbarui"
+    );
+
+    if (reason === null) return;
 
     try {
-      const res = await fetch(`/api/materials/${id}`, {
-        method: "DELETE",
+      setRequestingId(item._id);
+
+      const res = await fetch("/api/deletion-requests", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          itemType: "material",
+          itemId: item._id,
+          itemTitle: item.title,
+          requestedBy: user?.id,
+          reason,
+        }),
       });
 
       const result = await res.json();
 
-      if (!result.success) {
-        alert(result.message || "Gagal menghapus materi");
+      if (!res.ok) {
+        alert(result.message || "Gagal mengajukan penghapusan materi");
         return;
       }
 
-      fetchMaterials();
+      alert("Request penghapusan materi berhasil diajukan ke admin.");
     } catch (error) {
-      console.error("DELETE_DOSEN_MATERIAL_ERROR:", error);
-      alert("Terjadi kesalahan saat menghapus materi");
+      console.error("REQUEST_DELETE_DOSEN_MATERIAL_ERROR:", error);
+      alert("Terjadi kesalahan saat mengajukan penghapusan materi");
+    } finally {
+      setRequestingId(null);
     }
   };
 
@@ -158,9 +179,10 @@ export default function DosenMaterialsPage() {
                 </button>
                 <button
                   className="neu-button"
-                  onClick={() => handleDelete(item._id)}
+                  onClick={() => handleDeleteRequest(item)}
+                  disabled={requestingId === item._id}
                 >
-                  Hapus
+                  {requestingId === item._id ? "Mengajukan..." : "Ajukan Hapus"}
                 </button>
               </div>
             </div>
