@@ -116,10 +116,22 @@ export default function CreateDosenExercisePage() {
     <div className="page-stack fade-in">
       <SectionTitle
         title="Tambah Exercise / Quiz"
-        subtitle="Dosen dapat membuat soal pilihan ganda atau essay."
+        subtitle="Dosen dapat membuat soal pilihan ganda atau essay. Bagian AI bersifat opsional sebagai konteks tambahan."
       />
 
       <div className="dashboard-card neu-card" style={{ display: "grid", gap: 16 }}>
+        <div className="dashboard-card neu-card" style={{ padding: 14 }}>
+          <strong style={{ display: "block", marginBottom: 6 }}>
+            Catatan AI Adaptive
+          </strong>
+          <p style={{ color: "var(--text-soft)", margin: 0, lineHeight: 1.7 }}>
+            Field seperti <strong>Explanation</strong>, <strong>Tips AI</strong>, dan{" "}
+            <strong>Recommended Level</strong> bersifat opsional. Kalau dikosongkan,
+            AI tetap akan memberi feedback otomatis dari soal, jawaban benar, dan
+            jawaban mahasiswa.
+          </p>
+        </div>
+
         <div className="auth-field">
           <label>Judul Soal</label>
           <input
@@ -186,7 +198,7 @@ export default function CreateDosenExercisePage() {
           </div>
 
           <div className="auth-field">
-            <label>Recommended Level</label>
+            <label>Recommended Level (Opsional)</label>
             <select
               className="auth-input"
               value={recommendedLevel}
@@ -260,7 +272,7 @@ export default function CreateDosenExercisePage() {
         )}
 
         <div className="auth-field">
-          <label>Explanation</label>
+          <label>Explanation (Opsional)</label>
           <textarea
             className="auth-input"
             value={explanation}
@@ -271,12 +283,12 @@ export default function CreateDosenExercisePage() {
         </div>
 
         <div className="auth-field">
-          <label>Tips AI / Adaptive Tip</label>
+          <label>Tips AI / Adaptive Tip (Opsional)</label>
           <textarea
             className="auth-input"
             value={aiTip}
             onChange={(e) => setAiTip(e.target.value)}
-            placeholder="Tips saat mahasiswa salah menjawab"
+            placeholder="Opsional. Bisa diisi sebagai arahan tambahan untuk AI."
             rows={3}
           />
         </div>

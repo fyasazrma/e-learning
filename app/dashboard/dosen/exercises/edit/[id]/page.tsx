@@ -154,10 +154,21 @@ export default function EditDosenExercisePage() {
     <div className="page-stack fade-in">
       <SectionTitle
         title="Edit Exercise / Quiz"
-        subtitle="Perbarui soal, tipe, jawaban, dan feedback adaptif."
+        subtitle="Perbarui soal. Bagian AI bersifat opsional sebagai konteks tambahan."
       />
 
       <div className="dashboard-card neu-card" style={{ display: "grid", gap: 16 }}>
+        <div className="dashboard-card neu-card" style={{ padding: 14 }}>
+          <strong style={{ display: "block", marginBottom: 6 }}>
+            Catatan AI Adaptive
+          </strong>
+          <p style={{ color: "var(--text-soft)", margin: 0, lineHeight: 1.7 }}>
+            Explanation, Tips AI, dan Recommended Level tidak wajib diisi.
+            Kalau dikosongkan, AI tetap memberi feedback otomatis saat mahasiswa
+            submit jawaban.
+          </p>
+        </div>
+
         <div className="auth-field">
           <label>Judul Soal</label>
           <input
@@ -223,7 +234,7 @@ export default function EditDosenExercisePage() {
           </div>
 
           <div className="auth-field">
-            <label>Recommended Level</label>
+            <label>Recommended Level (Opsional)</label>
             <select
               className="auth-input"
               value={recommendedLevel}
@@ -294,7 +305,7 @@ export default function EditDosenExercisePage() {
         )}
 
         <div className="auth-field">
-          <label>Explanation</label>
+          <label>Explanation (Opsional)</label>
           <textarea
             className="auth-input"
             value={explanation}
@@ -304,12 +315,13 @@ export default function EditDosenExercisePage() {
         </div>
 
         <div className="auth-field">
-          <label>Tips AI / Adaptive Tip</label>
+          <label>Tips AI / Adaptive Tip (Opsional)</label>
           <textarea
             className="auth-input"
             value={aiTip}
             onChange={(e) => setAiTip(e.target.value)}
             rows={3}
+            placeholder="Opsional. Bisa diisi sebagai arahan tambahan untuk AI."
           />
         </div>
 

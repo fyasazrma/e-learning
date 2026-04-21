@@ -11,6 +11,7 @@ type ExerciseType = {
   level: "easy" | "medium" | "hard";
   questionType?: "multiple_choice" | "essay";
   createdAt?: string;
+  createdBy?: string | null;
 };
 
 export default function DosenExercisesPage() {
@@ -19,28 +20,47 @@ export default function DosenExercisesPage() {
   const [exercises, setExercises] = useState<ExerciseType[]>([]);
   const [loading, setLoading] = useState(true);
   const [requestingId, setRequestingId] = useState<string | null>(null);
+  const [viewMode, setViewMode] = useState<"mine" | "all">("mine");
 
   const fetchExercises = async () => {
     try {
-      const res = await fetch(
-        `/api/exercises?includeAll=true&createdBy=${user?.id || ""}`,
-        { cache: "no-store" }
-      );
-      const result = await res.json();
+      if (user?.id) {
+        const mineRes = await fetch(
+          `/api/exercises?includeAll=true&createdBy=${user.id}`,
+          { cache: "no-store" }
+        );
+        const mineResult = await mineRes.json();
 
-      if (result.success) {
-        setExercises(result.data || []);
+        const mineExercises = mineResult.success ? mineResult.data || [] : [];
+
+        if (mineExercises.length > 0) {
+          setExercises(mineExercises);
+          setViewMode("mine");
+          return;
+        }
+      }
+
+      const allRes = await fetch(`/api/exercises?includeAll=true`, {
+        cache: "no-store",
+      });
+      const allResult = await allRes.json();
+
+      if (allResult.success) {
+        setExercises(allResult.data || []);
+        setViewMode("all");
       } else {
         setExercises([]);
       }
     } catch (error) {
       console.error("FETCH_DOSEN_EXERCISES_ERROR:", error);
       setExercises([]);
+    } finally {
+      setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchExercises().finally(() => setLoading(false));
+    fetchExercises();
   }, []);
 
   const handleDeleteRequest = async (item: ExerciseType) => {
@@ -90,7 +110,18 @@ export default function DosenExercisesPage() {
         subtitle="Dosen dapat membuat, mengedit, dan mengajukan hapus soal."
       />
 
-      <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 16 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap", marginBottom: 16 }}>
+        <div className="dashboard-card neu-card" style={{ padding: 14 }}>
+          <strong style={{ display: "block", marginBottom: 4 }}>
+            {viewMode === "mine" ? "Menampilkan soal milik dosen ini" : "Menampilkan semua soal"}
+          </strong>
+          <p style={{ color: "var(--text-soft)", margin: 0 }}>
+            {viewMode === "mine"
+              ? "Data difilter berdasarkan akun dosen yang sedang login."
+              : "Soal lama belum punya createdBy, jadi sistem menampilkan semua soal sebagai fallback."}
+          </p>
+        </div>
+
         <Link href="/dashboard/dosen/exercises/create" className="neu-button">
           + Tambah Exercise
         </Link>
