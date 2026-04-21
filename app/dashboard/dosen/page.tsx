@@ -9,6 +9,7 @@ import {
   BarChart3,
   MessageSquareMore,
   ArrowRight,
+  Clock3,
 } from "lucide-react";
 
 type MaterialType = {
@@ -47,6 +48,13 @@ type UserType = {
   email?: string;
   role?: string;
   npm?: string;
+};
+
+type AttendanceType = {
+  _id: string;
+  studentId?: string | null;
+  date: string;
+  status: "present" | "late" | "absent";
 };
 
 function StatCard({
@@ -151,6 +159,7 @@ export default function DosenDashboardPage() {
   const [progress, setProgress] = useState<ProgressType[]>([]);
   const [feedbacks, setFeedbacks] = useState<FeedbackType[]>([]);
   const [users, setUsers] = useState<UserType[]>([]);
+  const [attendance, setAttendance] = useState<AttendanceType[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -162,12 +171,14 @@ export default function DosenDashboardPage() {
           progressRes,
           feedbacksRes,
           usersRes,
+          attendanceRes,
         ] = await Promise.all([
           fetch("/api/materials", { cache: "no-store" }),
           fetch("/api/exercises", { cache: "no-store" }),
           fetch("/api/learning-progress", { cache: "no-store" }),
           fetch("/api/feedbacks", { cache: "no-store" }),
           fetch("/api/users", { cache: "no-store" }),
+          fetch("/api/attendance", { cache: "no-store" }),
         ]);
 
         const [
@@ -176,12 +187,14 @@ export default function DosenDashboardPage() {
           progressJson,
           feedbacksJson,
           usersJson,
+          attendanceJson,
         ] = await Promise.all([
           materialsRes.json(),
           exercisesRes.json(),
           progressRes.json(),
           feedbacksRes.json(),
           usersRes.json(),
+          attendanceRes.json(),
         ]);
 
         if (materialsJson.success) setMaterials(materialsJson.data || []);
@@ -189,6 +202,7 @@ export default function DosenDashboardPage() {
         if (progressJson.success) setProgress(progressJson.data || []);
         if (feedbacksJson.success) setFeedbacks(feedbacksJson.data || []);
         if (usersJson.success) setUsers(usersJson.data || []);
+        if (attendanceJson.success) setAttendance(attendanceJson.data || []);
       } catch (error) {
         console.error("FETCH_DOSEN_DASHBOARD_ERROR:", error);
       } finally {
@@ -227,6 +241,11 @@ export default function DosenDashboardPage() {
     return sorted.length > 0 ? sorted[0][0] : "-";
   }, [feedbacks]);
 
+  const totalPresent = useMemo(
+    () => attendance.filter((item) => item.status === "present").length,
+    [attendance]
+  );
+
   if (loading) {
     return <div className="dashboard-card neu-card">Loading dashboard dosen...</div>;
   }
@@ -256,8 +275,8 @@ export default function DosenDashboardPage() {
             </div>
             <h2 style={{ marginBottom: 10 }}>Dashboard Dosen</h2>
             <p style={{ color: "var(--text-soft)", lineHeight: 1.8, marginBottom: 18 }}>
-              Pantau materi, latihan, performa mahasiswa, dan error yang sering
-              muncul pada pembelajaran adaptif.
+              Pantau materi, latihan, performa mahasiswa, error yang sering
+              muncul, dan absensi mahasiswa.
             </p>
 
             <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
@@ -271,6 +290,10 @@ export default function DosenDashboardPage() {
 
               <Link href="/dashboard/dosen/exercises/create" className="neu-button">
                 + Tambah Exercise
+              </Link>
+
+              <Link href="/dashboard/dosen/attendance" className="neu-button">
+                Lihat Attendance
               </Link>
             </div>
           </div>
@@ -327,6 +350,13 @@ export default function DosenDashboardPage() {
           title="Mahasiswa"
           subtitle="Mahasiswa yang terhubung ke sistem."
         />
+
+        <StatCard
+          icon={<Clock3 size={20} />}
+          value={totalPresent}
+          title="Total Attendance"
+          subtitle="Jumlah absensi hadir yang tercatat."
+        />
       </div>
 
       <div
@@ -357,6 +387,16 @@ export default function DosenDashboardPage() {
               }}
             >
               <strong>Most Common Error:</strong> {mostCommonError}
+            </div>
+            <div
+              style={{
+                padding: 14,
+                borderRadius: 16,
+                background: "var(--surface)",
+                boxShadow: "var(--shadow-inset)",
+              }}
+            >
+              <strong>Total Present Attendance:</strong> {totalPresent}
             </div>
           </div>
         </SectionPanel>
@@ -407,6 +447,9 @@ export default function DosenDashboardPage() {
           </Link>
           <Link href="/dashboard/dosen/feedback" className="neu-button">
             Feedback
+          </Link>
+          <Link href="/dashboard/dosen/attendance" className="neu-button">
+            Attendance
           </Link>
         </div>
       </SectionPanel>

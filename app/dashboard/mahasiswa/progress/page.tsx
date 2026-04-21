@@ -19,62 +19,196 @@ type ProgressType = {
 
 type FilterType = "today" | "yesterday" | "all";
 
+function getProgressDate(item: ProgressType) {
+  return new Date(item.updatedAt || item.createdAt || 0);
+}
+
 function isToday(dateString?: string) {
   if (!dateString) return false;
-
   const date = new Date(dateString);
   const today = new Date();
-
-  return (
-    date.getDate() === today.getDate() &&
-    date.getMonth() === today.getMonth() &&
-    date.getFullYear() === today.getFullYear()
-  );
+  return date.toDateString() === today.toDateString();
 }
 
 function isYesterday(dateString?: string) {
   if (!dateString) return false;
-
   const date = new Date(dateString);
+
   const yesterday = new Date();
   yesterday.setDate(yesterday.getDate() - 1);
 
+  return date.toDateString() === yesterday.toDateString();
+}
+
+function getLevelProgress(level?: "easy" | "medium" | "hard") {
+  if (level === "easy") return 33;
+  if (level === "medium") return 66;
+  if (level === "hard") return 100;
+  return 0;
+}
+
+function StatCard({
+  value,
+  title,
+  subtitle,
+}: {
+  value: string | number;
+  title: string;
+  subtitle: string;
+}) {
   return (
-    date.getDate() === yesterday.getDate() &&
-    date.getMonth() === yesterday.getMonth() &&
-    date.getFullYear() === yesterday.getFullYear()
+    <div className="dashboard-card neu-card">
+      <div
+        style={{
+          fontSize: "2rem",
+          fontWeight: 800,
+          color: "var(--accent)",
+          marginBottom: 10,
+          textTransform: "capitalize",
+        }}
+      >
+        {value}
+      </div>
+      <h3 style={{ marginBottom: 8 }}>{title}</h3>
+      <p style={{ color: "var(--text-soft)", lineHeight: 1.7 }}>{subtitle}</p>
+    </div>
+  );
+}
+
+function ProgressBar({
+  label,
+  value,
+}: {
+  label: string;
+  value: number;
+}) {
+  return (
+    <div style={{ marginBottom: 16 }}>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          gap: 12,
+          marginBottom: 6,
+        }}
+      >
+        <span style={{ fontWeight: 700 }}>{label}</span>
+        <span style={{ color: "var(--text-soft)" }}>{value}%</span>
+      </div>
+
+      <div
+        style={{
+          width: "100%",
+          height: 12,
+          borderRadius: 999,
+          overflow: "hidden",
+          background: "var(--surface)",
+          boxShadow: "var(--shadow-inset)",
+        }}
+      >
+        <div
+          style={{
+            width: `${Math.max(0, Math.min(100, value))}%`,
+            height: "100%",
+            borderRadius: 999,
+            background: "var(--accent)",
+          }}
+        />
+      </div>
+    </div>
+  );
+}
+
+function CircleProgress({
+  value,
+  label,
+}: {
+  value: number;
+  label: string;
+}) {
+  const percentage = Math.max(0, Math.min(100, value));
+
+  return (
+    <div
+      style={{
+        display: "grid",
+        placeItems: "center",
+        width: 180,
+        height: 180,
+        borderRadius: "50%",
+        background: `conic-gradient(var(--accent) ${percentage * 3.6}deg, var(--surface) 0deg)`,
+        padding: 14,
+        margin: "0 auto",
+      }}
+    >
+      <div
+        style={{
+          width: "100%",
+          height: "100%",
+          borderRadius: "50%",
+          background: "var(--bg)",
+          boxShadow: "var(--shadow-inset)",
+          display: "grid",
+          placeItems: "center",
+          textAlign: "center",
+        }}
+      >
+        <div>
+          <div
+            style={{
+              fontSize: "2rem",
+              fontWeight: 800,
+              color: "var(--accent)",
+              lineHeight: 1,
+              marginBottom: 6,
+            }}
+          >
+            {percentage}%
+          </div>
+          <div style={{ color: "var(--text-soft)", fontSize: ".95rem" }}>
+            {label}
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }
 
 export default function MahasiswaProgressPage() {
   const [progressData, setProgressData] = useState<ProgressType[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState<FilterType>("today");
+  const [filter, setFilter] = useState<FilterType>("all");
 
   useEffect(() => {
     const fetchProgress = async () => {
       try {
         const user = getClientUser();
 
-        const res = await fetch("/api/learning-progress", {
-          cache: "no-store",
-        });
+        if (!user?.id) {
+          setProgressData([]);
+          setLoading(false);
+          return;
+        }
+
+        const res = await fetch(
+          `/api/learning-progress?studentId=${user.id}`,
+          {
+            cache: "no-store",
+          }
+        );
 
         const result = await res.json();
 
         if (result.success) {
-          const filtered = (result.data || [])
-            .filter(
-              (item: ProgressType) =>
-                user?.id && String(item.studentId) === String(user.id)
-            )
-            .sort((a: ProgressType, b: ProgressType) => {
-              const dateA = new Date(a.updatedAt || a.createdAt || 0).getTime();
-              const dateB = new Date(b.updatedAt || b.createdAt || 0).getTime();
+          const sorted = (result.data || []).sort(
+            (a: ProgressType, b: ProgressType) => {
+              const dateA = getProgressDate(a).getTime();
+              const dateB = getProgressDate(b).getTime();
               return dateB - dateA;
-            });
+            }
+          );
 
-          setProgressData(filtered);
+          setProgressData(sorted);
         } else {
           setProgressData([]);
         }
@@ -110,12 +244,16 @@ export default function MahasiswaProgressPage() {
   }, [filteredProgress]);
 
   const totalExercises = useMemo(() => {
-    if (!filteredProgress.length) return 0;
-    return filteredProgress.reduce(
-      (sum, item) => sum + (item.completedExercises || 0),
-      0
-    );
-  }, [filteredProgress]);
+    return latestProgress?.completedExercises || 0;
+  }, [latestProgress]);
+
+  const totalQuizzes = useMemo(() => {
+    return latestProgress?.completedQuizzes || 0;
+  }, [latestProgress]);
+
+  const totalMaterials = useMemo(() => {
+    return latestProgress?.completedMaterials || 0;
+  }, [latestProgress]);
 
   const overallAverageScore = useMemo(() => {
     if (!filteredProgress.length) return 0;
@@ -125,17 +263,30 @@ export default function MahasiswaProgressPage() {
     );
   }, [filteredProgress]);
 
+  const levelVisual = useMemo(() => {
+    return getLevelProgress(latestProgress?.currentLevel);
+  }, [latestProgress]);
+
+  const activityCount = filteredProgress.length;
+
   if (loading) {
     return <div className="dashboard-card neu-card">Loading progress...</div>;
   }
 
   return (
     <div className="page-stack fade-in">
-      <div className="dashboard-card neu-card">
+      <div
+        className="dashboard-card neu-card"
+        style={{
+          padding: 28,
+          background:
+            "linear-gradient(135deg, rgba(90,120,255,.10), rgba(90,120,255,.03))",
+        }}
+      >
         <h2 style={{ marginBottom: "12px" }}>Progress Belajar</h2>
         <p style={{ color: "var(--text-soft)", lineHeight: 1.8 }}>
-          Pantau perkembangan latihanmu berdasarkan waktu pengerjaan dan hasil
-          latihan terbaru.
+          Pantau perkembangan latihanmu, skor rata-rata, level belajar, dan
+          feedback terbaru berdasarkan aktivitas yang sudah tersimpan.
         </p>
       </div>
 
@@ -155,24 +306,112 @@ export default function MahasiswaProgressPage() {
       </div>
 
       <div className="dashboard-grid">
+        <StatCard
+          value={totalExercises}
+          title="Total Latihan Selesai"
+          subtitle="Jumlah latihan selesai berdasarkan progress terbaru."
+        />
+
+        <StatCard
+          value={overallAverageScore}
+          title="Rata-rata Skor"
+          subtitle="Rata-rata skor berdasarkan data progress pada filter ini."
+        />
+
+        <StatCard
+          value={latestProgress?.currentLevel || "-"}
+          title="Level Saat Ini"
+          subtitle="Level terbaru berdasarkan progress yang tercatat."
+        />
+      </div>
+
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "1.15fr .85fr",
+          gap: 20,
+        }}
+      >
         <div className="dashboard-card neu-card">
-          <div className="dashboard-number">{totalExercises}</div>
-          <h3>Total Latihan Selesai</h3>
-          <p>Akumulasi latihan selesai sesuai filter waktu yang dipilih.</p>
+          <h3 style={{ marginBottom: 18 }}>Visual Progress</h3>
+
+          {!latestProgress ? (
+            <p style={{ color: "var(--text-soft)" }}>
+              Belum ada progress untuk divisualisasikan.
+            </p>
+          ) : (
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "220px 1fr",
+                gap: 24,
+                alignItems: "center",
+              }}
+            >
+              <CircleProgress value={overallAverageScore} label="Overall Score" />
+
+              <div>
+                <ProgressBar label="Progress Level" value={levelVisual} />
+                <ProgressBar
+                  label="Exercises"
+                  value={Math.min(100, totalExercises * 10)}
+                />
+                <ProgressBar
+                  label="Quizzes"
+                  value={Math.min(100, totalQuizzes * 10)}
+                />
+                <ProgressBar
+                  label="Materials"
+                  value={Math.min(100, totalMaterials * 10)}
+                />
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="dashboard-card neu-card">
-          <div className="dashboard-number">{overallAverageScore}</div>
-          <h3>Rata-rata Skor</h3>
-          <p>Rata-rata skor berdasarkan progress pada periode yang dipilih.</p>
-        </div>
+          <h3 style={{ marginBottom: 18 }}>Ringkasan Aktivitas</h3>
 
-        <div className="dashboard-card neu-card">
-          <div className="dashboard-number" style={{ textTransform: "capitalize" }}>
-            {latestProgress?.currentLevel || "-"}
+          <div style={{ display: "grid", gap: 14 }}>
+            <div
+              style={{
+                padding: 14,
+                borderRadius: 16,
+                background: "var(--surface)",
+                boxShadow: "var(--shadow-inset)",
+              }}
+            >
+              <strong>Jumlah Record Progress:</strong> {activityCount}
+            </div>
+
+            <div
+              style={{
+                padding: 14,
+                borderRadius: 16,
+                background: "var(--surface)",
+                boxShadow: "var(--shadow-inset)",
+              }}
+            >
+              <strong>Update Terakhir:</strong>{" "}
+              {latestProgress?.updatedAt || latestProgress?.createdAt
+                ? new Date(
+                    latestProgress.updatedAt || latestProgress.createdAt || ""
+                  ).toLocaleString("id-ID")
+                : "-"}
+            </div>
+
+            <div
+              style={{
+                padding: 14,
+                borderRadius: 16,
+                background: "var(--surface)",
+                boxShadow: "var(--shadow-inset)",
+              }}
+            >
+              <strong>Feedback Terakhir:</strong>{" "}
+              {latestProgress?.lastFeedback || "Belum ada feedback terbaru."}
+            </div>
           </div>
-          <h3>Level Saat Ini</h3>
-          <p>Level terbaru berdasarkan progress dalam filter yang dipilih.</p>
         </div>
       </div>
 
@@ -200,8 +439,16 @@ export default function MahasiswaProgressPage() {
             }}
           >
             <p style={{ marginBottom: 6 }}>
+              <strong>Completed Materials:</strong>{" "}
+              {latestProgress.completedMaterials}
+            </p>
+            <p style={{ marginBottom: 6 }}>
               <strong>Completed Exercises:</strong>{" "}
               {latestProgress.completedExercises}
+            </p>
+            <p style={{ marginBottom: 6 }}>
+              <strong>Completed Quizzes:</strong>{" "}
+              {latestProgress.completedQuizzes}
             </p>
             <p style={{ marginBottom: 6 }}>
               <strong>Average Score:</strong> {latestProgress.averageScore}
@@ -244,7 +491,13 @@ export default function MahasiswaProgressPage() {
                 }}
               >
                 <p style={{ marginBottom: 6 }}>
+                  <strong>Completed Materials:</strong> {item.completedMaterials}
+                </p>
+                <p style={{ marginBottom: 6 }}>
                   <strong>Completed Exercises:</strong> {item.completedExercises}
+                </p>
+                <p style={{ marginBottom: 6 }}>
+                  <strong>Completed Quizzes:</strong> {item.completedQuizzes}
                 </p>
                 <p style={{ marginBottom: 6 }}>
                   <strong>Average Score:</strong> {item.averageScore}

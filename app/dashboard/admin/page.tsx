@@ -12,6 +12,7 @@ import {
   BarChart3,
   ArrowRight,
   Settings,
+  Clock3,
 } from "lucide-react";
 
 type UserType = {
@@ -37,6 +38,13 @@ type ExerciseType = {
   _id: string;
   title: string;
   level: "easy" | "medium" | "hard";
+};
+
+type AttendanceType = {
+  _id: string;
+  studentId?: string | null;
+  date: string;
+  status: "present" | "late" | "absent";
 };
 
 function StatCard({
@@ -140,30 +148,35 @@ export default function AdminDashboardPage() {
   const [topics, setTopics] = useState<TopicType[]>([]);
   const [materials, setMaterials] = useState<MaterialType[]>([]);
   const [exercises, setExercises] = useState<ExerciseType[]>([]);
+  const [attendance, setAttendance] = useState<AttendanceType[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
-        const [usersRes, topicsRes, materialsRes, exercisesRes] = await Promise.all([
-          fetch("/api/users", { cache: "no-store" }),
-          fetch("/api/topics", { cache: "no-store" }),
-          fetch("/api/materials", { cache: "no-store" }),
-          fetch("/api/exercises", { cache: "no-store" }),
-        ]);
+        const [usersRes, topicsRes, materialsRes, exercisesRes, attendanceRes] =
+          await Promise.all([
+            fetch("/api/users", { cache: "no-store" }),
+            fetch("/api/topics", { cache: "no-store" }),
+            fetch("/api/materials", { cache: "no-store" }),
+            fetch("/api/exercises", { cache: "no-store" }),
+            fetch("/api/attendance", { cache: "no-store" }),
+          ]);
 
-        const [usersJson, topicsJson, materialsJson, exercisesJson] =
+        const [usersJson, topicsJson, materialsJson, exercisesJson, attendanceJson] =
           await Promise.all([
             usersRes.json(),
             topicsRes.json(),
             materialsRes.json(),
             exercisesRes.json(),
+            attendanceRes.json(),
           ]);
 
         if (usersJson.success) setUsers(usersJson.data || []);
         if (topicsJson.success) setTopics(topicsJson.data || []);
         if (materialsJson.success) setMaterials(materialsJson.data || []);
         if (exercisesJson.success) setExercises(exercisesJson.data || []);
+        if (attendanceJson.success) setAttendance(attendanceJson.data || []);
       } catch (error) {
         console.error("FETCH_ADMIN_DASHBOARD_ERROR:", error);
       } finally {
@@ -200,6 +213,19 @@ export default function AdminDashboardPage() {
     [exercises]
   );
 
+  const totalPresent = useMemo(
+    () => attendance.filter((item) => item.status === "present").length,
+    [attendance]
+  );
+  const totalLate = useMemo(
+    () => attendance.filter((item) => item.status === "late").length,
+    [attendance]
+  );
+  const totalAbsent = useMemo(
+    () => attendance.filter((item) => item.status === "absent").length,
+    [attendance]
+  );
+
   const latestUser = users[0];
   const latestTopic = topics[0];
   const latestMaterial = materials[0];
@@ -234,8 +260,8 @@ export default function AdminDashboardPage() {
             </div>
             <h2 style={{ marginBottom: 10 }}>Dashboard Admin</h2>
             <p style={{ color: "var(--text-soft)", lineHeight: 1.8, marginBottom: 18 }}>
-              Kelola struktur sistem, pengguna, topik, materi, dan latihan untuk
-              memastikan platform adaptive learning berjalan stabil.
+              Kelola struktur sistem, pengguna, topik, materi, latihan, dan absensi
+              untuk memastikan platform adaptive learning berjalan stabil.
             </p>
 
             <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
@@ -244,6 +270,9 @@ export default function AdminDashboardPage() {
               </Link>
               <Link href="/dashboard/admin/topics" className="neu-button">
                 Kelola Topics
+              </Link>
+              <Link href="/dashboard/admin/attendance" className="neu-button">
+                Monitoring Attendance
               </Link>
             </div>
           </div>
@@ -300,6 +329,13 @@ export default function AdminDashboardPage() {
           title="Total Exercises"
           subtitle="Jumlah latihan yang tersedia untuk adaptive learning."
         />
+
+        <StatCard
+          icon={<Clock3 size={20} />}
+          value={attendance.length}
+          title="Total Attendance"
+          subtitle="Jumlah total data absensi yang tercatat."
+        />
       </div>
 
       <div className="dashboard-grid">
@@ -322,6 +358,13 @@ export default function AdminDashboardPage() {
           value={totalMahasiswa}
           title="Mahasiswa"
           subtitle="Jumlah akun mahasiswa yang terdaftar."
+        />
+
+        <StatCard
+          icon={<Users size={20} />}
+          value={totalDosen}
+          title="Dosen"
+          subtitle="Jumlah akun dosen yang terdaftar."
         />
       </div>
 
@@ -399,6 +442,63 @@ export default function AdminDashboardPage() {
             >
               <strong>Hard:</strong> {hardCount}
             </div>
+          </div>
+        </SectionPanel>
+      </div>
+
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "1fr 1fr",
+          gap: 20,
+        }}
+      >
+        <SectionPanel title="Ringkasan Attendance" icon={<Clock3 size={20} />}>
+          <div style={{ display: "grid", gap: 12 }}>
+            <div
+              style={{
+                padding: 14,
+                borderRadius: 16,
+                background: "var(--surface)",
+                boxShadow: "var(--shadow-inset)",
+              }}
+            >
+              <strong>Present:</strong> {totalPresent}
+            </div>
+            <div
+              style={{
+                padding: 14,
+                borderRadius: 16,
+                background: "var(--surface)",
+                boxShadow: "var(--shadow-inset)",
+              }}
+            >
+              <strong>Late:</strong> {totalLate}
+            </div>
+            <div
+              style={{
+                padding: 14,
+                borderRadius: 16,
+                background: "var(--surface)",
+                boxShadow: "var(--shadow-inset)",
+              }}
+            >
+              <strong>Absent:</strong> {totalAbsent}
+            </div>
+          </div>
+        </SectionPanel>
+
+        <SectionPanel title="Akses Monitoring" icon={<ArrowRight size={20} />}>
+          <div style={{ display: "grid", gap: 12 }}>
+            <Link href="/dashboard/admin/attendance" className="neu-button">
+              Buka Attendance Monitor
+            </Link>
+            <Link href="/dashboard/admin/users" className="neu-button">
+              Kelola Users
+            </Link>
+            <Link href="/dashboard/admin/exercises" className="neu-button">
+              Kelola Exercises
+            </Link>
           </div>
         </SectionPanel>
       </div>
@@ -514,6 +614,9 @@ export default function AdminDashboardPage() {
           </Link>
           <Link href="/dashboard/admin/exercises" className="neu-button">
             Exercises
+          </Link>
+          <Link href="/dashboard/admin/attendance" className="neu-button">
+            Attendance
           </Link>
           <Link href="/dashboard/admin/analytics" className="neu-button">
             Analytics

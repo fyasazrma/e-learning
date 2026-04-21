@@ -58,6 +58,13 @@ type TopicType = {
   slug: string;
 };
 
+type AttendanceType = {
+  _id: string;
+  studentId?: string | null;
+  date: string;
+  status: "present" | "late" | "absent";
+};
+
 function StatCard({
   icon,
   value,
@@ -253,17 +260,23 @@ function CircleProgress({
 }
 
 export default function MahasiswaDashboardPage() {
+  const currentUser = getClientUser();
+
   const [progressData, setProgressData] = useState<ProgressType[]>([]);
   const [recommendations, setRecommendations] = useState<RecommendationType[]>([]);
   const [feedbacks, setFeedbacks] = useState<FeedbackType[]>([]);
   const [exercises, setExercises] = useState<ExerciseType[]>([]);
   const [topics, setTopics] = useState<TopicType[]>([]);
+  const [attendance, setAttendance] = useState<AttendanceType[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
-        const user = getClientUser();
+        if (!currentUser?.id) {
+          setLoading(false);
+          return;
+        }
 
         const [
           progressRes,
@@ -271,12 +284,22 @@ export default function MahasiswaDashboardPage() {
           feedbackRes,
           exercisesRes,
           topicsRes,
+          attendanceRes,
         ] = await Promise.all([
-          fetch("/api/learning-progress", { cache: "no-store" }),
-          fetch("/api/recommendations", { cache: "no-store" }),
-          fetch("/api/feedbacks", { cache: "no-store" }),
+          fetch(`/api/learning-progress?studentId=${currentUser.id}`, {
+            cache: "no-store",
+          }),
+          fetch(`/api/recommendations?studentId=${currentUser.id}`, {
+            cache: "no-store",
+          }),
+          fetch(`/api/feedbacks?studentId=${currentUser.id}`, {
+            cache: "no-store",
+          }),
           fetch("/api/exercises", { cache: "no-store" }),
           fetch("/api/topics", { cache: "no-store" }),
+          fetch(`/api/attendance?studentId=${currentUser.id}`, {
+            cache: "no-store",
+          }),
         ]);
 
         const [
@@ -285,56 +308,46 @@ export default function MahasiswaDashboardPage() {
           feedbackJson,
           exercisesJson,
           topicsJson,
+          attendanceJson,
         ] = await Promise.all([
           progressRes.json(),
           recommendationRes.json(),
           feedbackRes.json(),
           exercisesRes.json(),
           topicsRes.json(),
+          attendanceRes.json(),
         ]);
 
         if (progressJson.success) {
-          const filtered = (progressJson.data || [])
-            .filter(
-              (item: ProgressType) =>
-                user?.id && String(item.studentId) === String(user.id)
-            )
-            .sort((a: ProgressType, b: ProgressType) => {
+          const filtered = (progressJson.data || []).sort(
+            (a: ProgressType, b: ProgressType) => {
               const dateA = new Date(a.updatedAt || a.createdAt || 0).getTime();
               const dateB = new Date(b.updatedAt || b.createdAt || 0).getTime();
               return dateB - dateA;
-            });
-
+            }
+          );
           setProgressData(filtered);
         }
 
         if (recommendationJson.success) {
-          const filtered = (recommendationJson.data || [])
-            .filter(
-              (item: RecommendationType) =>
-                user?.id && String(item.studentId) === String(user.id)
-            )
-            .sort((a: RecommendationType, b: RecommendationType) => {
+          const filtered = (recommendationJson.data || []).sort(
+            (a: RecommendationType, b: RecommendationType) => {
               const dateA = new Date(a.createdAt || 0).getTime();
               const dateB = new Date(b.createdAt || 0).getTime();
               return dateB - dateA;
-            });
-
+            }
+          );
           setRecommendations(filtered);
         }
 
         if (feedbackJson.success) {
-          const filtered = (feedbackJson.data || [])
-            .filter(
-              (item: FeedbackType) =>
-                user?.id && String(item.studentId) === String(user.id)
-            )
-            .sort((a: FeedbackType, b: FeedbackType) => {
+          const filtered = (feedbackJson.data || []).sort(
+            (a: FeedbackType, b: FeedbackType) => {
               const dateA = new Date(a.createdAt || 0).getTime();
               const dateB = new Date(b.createdAt || 0).getTime();
               return dateB - dateA;
-            });
-
+            }
+          );
           setFeedbacks(filtered);
         }
 
@@ -345,6 +358,10 @@ export default function MahasiswaDashboardPage() {
         if (topicsJson.success) {
           setTopics(topicsJson.data || []);
         }
+
+        if (attendanceJson.success) {
+          setAttendance(attendanceJson.data || []);
+        }
       } catch (error) {
         console.error("FETCH_MAHASISWA_DASHBOARD_ERROR:", error);
       } finally {
@@ -353,9 +370,7 @@ export default function MahasiswaDashboardPage() {
     };
 
     fetchDashboardData();
-  }, []);
-
-  const currentUser = getClientUser();
+  }, [currentUser?.id]);
 
   const latestProgress = useMemo(() => {
     return progressData.length > 0 ? progressData[0] : null;
@@ -407,6 +422,16 @@ export default function MahasiswaDashboardPage() {
 
     return result;
   }, [topics, exercises, progressData]);
+
+  const attendanceRate = useMemo(() => {
+    if (attendance.length === 0) return 0;
+    const presentCount = attendance.filter((item) => item.status === "present").length;
+    return Math.round((presentCount / attendance.length) * 100);
+  }, [attendance]);
+
+  const latestAttendance = useMemo(() => {
+    return attendance.length > 0 ? attendance[0] : null;
+  }, [attendance]);
 
   const sheetProgress = topicProgressMap["sheets"] || 0;
   const docsProgress = topicProgressMap["docs"] || 0;
@@ -469,6 +494,9 @@ export default function MahasiswaDashboardPage() {
               <Link href="/dashboard/mahasiswa/materials" className="neu-button">
                 Buka Materi
               </Link>
+              <Link href="/dashboard/mahasiswa/attendance" className="neu-button">
+                Lihat Absensi
+              </Link>
             </div>
           </div>
 
@@ -483,7 +511,9 @@ export default function MahasiswaDashboardPage() {
               boxShadow: "var(--shadow-inset)",
             }}
           >
-            <div style={{ marginBottom: 10, color: "var(--text-soft)" }}>Status Belajar</div>
+            <div style={{ marginBottom: 10, color: "var(--text-soft)" }}>
+              Status Belajar
+            </div>
             <div
               style={{
                 fontSize: "2rem",
@@ -523,6 +553,13 @@ export default function MahasiswaDashboardPage() {
           value={latestProgress?.currentLevel || "-"}
           title="Level Saat Ini"
           subtitle="Level adaptif terbaru berdasarkan performa latihanmu."
+        />
+
+        <StatCard
+          icon={<Clock3 size={20} />}
+          value={`${attendanceRate}%`}
+          title="Attendance Rate"
+          subtitle="Persentase kehadiranmu berdasarkan absensi yang tercatat."
         />
       </div>
 
@@ -590,11 +627,11 @@ export default function MahasiswaDashboardPage() {
                 boxShadow: "var(--shadow-inset)",
               }}
             >
-              <div style={{ fontWeight: 700, marginBottom: 6 }}>Adaptive Status</div>
+              <div style={{ fontWeight: 700, marginBottom: 6 }}>Absensi Terakhir</div>
               <p style={{ color: "var(--text-soft)", lineHeight: 1.7 }}>
-                {latestRecommendation
-                  ? `Sistem mengarahkanmu ke level ${latestRecommendation.targetLevel}.`
-                  : "Belum ada adaptive status terbaru."}
+                {latestAttendance
+                  ? `${new Date(latestAttendance.date).toLocaleDateString("id-ID")} - ${latestAttendance.status}`
+                  : "Belum ada absensi terbaru."}
               </p>
             </div>
           </div>
@@ -646,7 +683,9 @@ export default function MahasiswaDashboardPage() {
             }}
           >
             <div>
-              <div style={{ color: "var(--text-soft)", marginBottom: 4 }}>Target Level</div>
+              <div style={{ color: "var(--text-soft)", marginBottom: 4 }}>
+                Target Level
+              </div>
               <div
                 style={{
                   fontWeight: 800,
@@ -687,6 +726,9 @@ export default function MahasiswaDashboardPage() {
           </Link>
           <Link href="/dashboard/mahasiswa/feedback" className="neu-button">
             Lihat Feedback
+          </Link>
+          <Link href="/dashboard/mahasiswa/attendance" className="neu-button">
+            Lihat Attendance
           </Link>
         </div>
       </SectionPanel>

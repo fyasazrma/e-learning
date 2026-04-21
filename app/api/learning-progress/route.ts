@@ -7,6 +7,7 @@ export async function GET(req: Request) {
 
     const { searchParams } = new URL(req.url);
     const studentId = searchParams.get("studentId");
+    const topicId = searchParams.get("topicId");
 
     if (!studentId) {
       return Response.json(
@@ -18,8 +19,16 @@ export async function GET(req: Request) {
       );
     }
 
-    const progress = await LearningProgress.find({ studentId })
-      .sort({ createdAt: -1 })
+    const query: Record<string, any> = {
+      studentId,
+    };
+
+    if (topicId) {
+      query.topicId = topicId;
+    }
+
+    const progress = await LearningProgress.find(query)
+      .sort({ updatedAt: -1, createdAt: -1 })
       .lean();
 
     return Response.json({
