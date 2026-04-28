@@ -1,7 +1,7 @@
 export async function POST(request: Request) {
   try {
     const apiKey = process.env.OPENROUTER_API_KEY;
-    const model = process.env.OPENROUTER_AI_MODEL || "openrouter/free";
+    const model = process.env.OPENROUTER_AI_MODEL || "openrouter/auto";
     const baseUrl =
       process.env.OPENROUTER_BASE_URL || "https://openrouter.ai/api/v1";
 
@@ -34,8 +34,7 @@ export async function POST(request: Request) {
       return Response.json(
         {
           success: false,
-          message:
-            "instruction, correctAnswer, dan studentAnswer wajib diisi",
+          message: "instruction, correctAnswer, dan studentAnswer wajib diisi",
         },
         { status: 400 }
       );
@@ -43,43 +42,52 @@ export async function POST(request: Request) {
 
     const prompt = `
 Kamu adalah AI tutor untuk sistem Adaptive Learning.
-Tugasmu menganalisis jawaban mahasiswa dan memberi feedback personal dalam bahasa Indonesia.
 
-Data soal:
-- Judul: ${title || "-"}
-- Pertanyaan: ${instruction}
-- Tipe soal: ${questionType || "essay"}
-- Level soal: ${level || "easy"}
-- Opsi jawaban: ${Array.isArray(options) ? JSON.stringify(options) : "[]"}
-- Jawaban benar / referensi: ${correctAnswer}
-- Explanation dosen: ${explanation || "-"}
-- Tips dosen: ${aiTip || "-"}
-- Recommended level dosen: ${recommendedLevel || level || "easy"}
+Nilai jawaban mahasiswa berdasarkan data berikut.
 
-Jawaban mahasiswa:
+DATA SOAL:
+Judul: ${title || "-"}
+Pertanyaan: ${instruction}
+Tipe soal: ${questionType || "essay"}
+Level soal: ${level || "easy"}
+Opsi jawaban: ${Array.isArray(options) ? JSON.stringify(options) : "[]"}
+Jawaban benar / referensi: ${correctAnswer}
+Explanation dosen: ${explanation || "-"}
+Tips dosen: ${aiTip || "-"}
+Recommended level dosen: ${recommendedLevel || level || "easy"}
+
+JAWABAN MAHASISWA:
 ${studentAnswer}
 
-Balas HANYA dalam JSON valid dengan format:
+Balas HANYA JSON valid. Jangan pakai markdown. Jangan pakai penjelasan di luar JSON.
+
+Format JSON:
 {
-  "isCorrect": true/false,
-  "score": 0-100,
-  "detectedError": "string",
-  "feedback": "string",
-  "aiTip": "string",
-  "nextRecommendation": "string",
-  "recommendedLevel": "easy|medium|hard"
+  "isCorrect": boolean,
+  "score": number,
+  "detectedError": string,
+  "feedback": string,
+  "aiTip": string,
+  "nextRecommendation": string,
+  "recommendedLevel": "easy" | "medium" | "hard"
 }
 
-Aturan:
-- Jika jawaban mahasiswa sesuai, beri feedback positif dan rekomendasi naik level bila cocok.
-- Jika salah, jelaskan kesalahan inti secara singkat.
-- "detectedError" harus menjelaskan kesalahan konsep, bukan kosong.
-- "aiTip" harus praktis dan singkat.
-- Jangan tulis markdown.
+Aturan penilaian:
+- score harus 0 sampai 100.
+- Jika jawaban benar, isCorrect true dan score minimal 75.
+- Jika jawaban salah, isCorrect false dan jelaskan kesalahan utama di detectedError.
+- feedback harus singkat, jelas, dan dalam bahasa Indonesia.
+- aiTip harus berupa tips praktis.
+- nextRecommendation berisi saran latihan/materi berikutnya.
+- recommendedLevel boleh naik jika jawaban sangat baik, tetap jika cukup, turun jika salah.
 `;
+
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 10000);
 
     const response = await fetch(`${baseUrl}/chat/completions`, {
       method: "POST",
+      signal: controller.signal,
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${apiKey}`,
@@ -90,16 +98,19 @@ Aturan:
           {
             role: "system",
             content:
-              "Kamu adalah AI tutor untuk adaptive learning. Selalu balas JSON valid tanpa markdown.",
+              "Kamu adalah AI tutor adaptive learning. Selalu balas JSON valid tanpa markdown.",
           },
           {
             role: "user",
             content: prompt,
           },
         ],
-        temperature: 0.3,
+        temperature: 0.2,
+        max_tokens: 300,
       }),
     });
+
+    clearTimeout(timeout);
 
     const result = await response.json();
 
@@ -115,12 +126,18 @@ Aturan:
       );
     }
 
-    const content =
+    let content =
       result?.choices?.[0]?.message?.content ||
       result?.choices?.[0]?.text ||
       "";
 
+    content = content
+      .replace(/```json/g, "")
+      .replace(/```/g, "")
+      .trim();
+
     let parsed;
+
     try {
       parsed = JSON.parse(content);
     } catch (error) {
@@ -139,10 +156,28 @@ Aturan:
     return Response.json({
       success: true,
       message: "AI feedback berhasil dibuat",
-      data: parsed,
+      data: {
+        isCorrect: Boolean(parsed.isCorrect),
+        score: Number(parsed.score) || 0,
+        detectedError: parsed.detectedError || "-",
+        feedback: parsed.feedback || "-",
+        aiTip: parsed.aiTip || "-",
+        nextRecommendation: parsed.nextRecommendation || "-",
+        recommendedLevel: parsed.recommendedLevel || level || "easy",
+      },
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error("AI_FEEDBACK_ERROR:", error);
+
+    if (error?.name === "AbortError") {
+      return Response.json(
+        {
+          success: false,
+          message: "AI terlalu lama merespons. Coba lagi sebentar.",
+        },
+        { status: 504 }
+      );
+    }
 
     return Response.json(
       {
