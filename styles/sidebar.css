@@ -3,6 +3,9 @@
   padding: 22px 18px;
   display: flex;
   flex-direction: column;
+  width: 100%;
+  max-width: 100%;
+  overflow: hidden;
 }
 
 .sidebar-brand {
@@ -12,12 +15,14 @@
 .sidebar-brand h2 {
   margin-top: 12px;
   font-size: 1.3rem;
+  word-break: break-word;
 }
 
 .sidebar-brand p {
   margin-top: 4px;
   color: var(--text-soft);
   font-size: 0.94rem;
+  word-break: break-word;
 }
 
 .sidebar-menu {
@@ -34,6 +39,7 @@
   border-radius: 18px;
   color: var(--text);
   transition: var(--transition);
+  min-width: 0;
 }
 
 .sidebar-item:hover {
@@ -56,11 +62,13 @@
   padding: 16px;
   margin-bottom: 16px;
   border-radius: 20px;
+  min-width: 0;
 }
 
 .sidebar-profile-name {
   font-weight: 700;
   margin-bottom: 4px;
+  word-break: break-word;
 }
 
 .sidebar-profile-role {
@@ -70,4 +78,54 @@
 
 .logout-button {
   width: 100%;
+}
+
+@media (max-width: 900px) {
+  .sidebar {
+    min-height: auto;
+    padding: 18px;
+    margin-bottom: 18px;
+    border-radius: 24px;
+  }
+
+  .sidebar-brand {
+    padding: 6px 4px 18px;
+  }
+
+  .sidebar-menu {
+    gap: 8px;
+  }
+
+  .sidebar-item {
+    padding: 13px 14px;
+  }
+
+  .sidebar-bottom {
+    margin-top: 18px;
+    padding-top: 0;
+  }
+}
+
+@media (max-width: 520px) {
+  .sidebar {
+    padding: 16px;
+    border-radius: 20px;
+  }
+
+  .sidebar-brand h2 {
+    font-size: 1.15rem;
+  }
+
+  .sidebar-brand p {
+    font-size: 0.85rem;
+  }
+
+  .sidebar-item {
+    padding: 12px;
+    font-size: 0.92rem;
+  }
+
+  .sidebar-profile {
+    padding: 14px;
+  }
 }

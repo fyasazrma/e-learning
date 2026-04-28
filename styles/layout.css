@@ -1,13 +1,18 @@
 .dashboard-layout {
   min-height: 100vh;
   display: grid;
-  grid-template-columns: 280px 1fr;
+  grid-template-columns: 280px minmax(0, 1fr);
   gap: 24px;
   padding: 24px;
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
 }
 
 .dashboard-main {
   min-width: 0;
+  width: 100%;
+  max-width: 100%;
 }
 
 .dashboard-topbar {
@@ -17,11 +22,18 @@
   justify-content: space-between;
   align-items: center;
   gap: 16px;
+  width: 100%;
+  max-width: 100%;
+}
+
+.topbar-title {
+  min-width: 0;
 }
 
 .topbar-title h1 {
   font-size: 1.7rem;
   margin-bottom: 6px;
+  word-break: break-word;
 }
 
 .topbar-title p {
@@ -32,6 +44,7 @@
   display: flex;
   align-items: center;
   gap: 12px;
+  flex-shrink: 0;
 }
 
 .profile-avatar {
@@ -44,6 +57,7 @@
   place-items: center;
   font-weight: 800;
   color: var(--accent);
+  flex-shrink: 0;
 }
 
 .profile-info strong {
@@ -53,4 +67,58 @@
 .profile-info span {
   color: var(--text-soft);
   font-size: 0.94rem;
+}
+
+@media (max-width: 900px) {
+  .dashboard-layout {
+    display: block;
+    padding: 16px;
+  }
+
+  .dashboard-main {
+    width: 100%;
+  }
+
+  .dashboard-topbar {
+    flex-direction: column;
+    align-items: stretch;
+    padding: 18px;
+    gap: 14px;
+  }
+
+  .topbar-profile {
+    justify-content: flex-start;
+  }
+}
+
+@media (max-width: 520px) {
+  .dashboard-layout {
+    padding: 12px;
+  }
+
+  .dashboard-topbar {
+    padding: 16px;
+    border-radius: 20px;
+  }
+
+  .topbar-title h1 {
+    font-size: 1.35rem;
+  }
+
+  .topbar-title p {
+    font-size: 0.9rem;
+  }
+
+  .profile-avatar {
+    width: 42px;
+    height: 42px;
+  }
+
+  .profile-info strong {
+    font-size: 0.95rem;
+  }
+
+  .profile-info span {
+    font-size: 0.85rem;
+  }
 }
