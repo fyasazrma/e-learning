@@ -14,7 +14,10 @@ export async function GET(request: Request) {
       query.studentId = studentId;
     }
 
-    const data = await Attendance.find(query).sort({ createdAt: -1 }).lean();
+    const data = await Attendance.find(query)
+      .populate("studentId", "name fullName email npm role")
+      .sort({ createdAt: -1 })
+      .lean();
 
     return Response.json({
       success: true,

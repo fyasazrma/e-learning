@@ -2,13 +2,38 @@
 
 import { useEffect, useMemo, useState } from "react";
 
+type StudentType = {
+  _id: string;
+  name?: string;
+  fullName?: string;
+  email?: string;
+  npm?: string;
+};
+
 type AttendanceType = {
   _id: string;
-  studentId?: string | null;
+  studentId?: StudentType | string | null;
   date: string;
   status: "present" | "late" | "absent";
   note?: string;
 };
+
+function getStudentName(studentId: AttendanceType["studentId"]) {
+  if (!studentId || typeof studentId === "string") return "-";
+
+  return (
+    studentId.name ||
+    studentId.fullName ||
+    studentId.email ||
+    "-"
+  );
+}
+
+function getStudentNpm(studentId: AttendanceType["studentId"]) {
+  if (!studentId || typeof studentId === "string") return null;
+
+  return studentId.npm || null;
+}
 
 export default function AdminAttendancePage() {
   const [attendanceData, setAttendanceData] = useState<AttendanceType[]>([]);
@@ -69,26 +94,36 @@ export default function AdminAttendancePage() {
         </div>
       ) : (
         <div className="info-list">
-          {attendanceData.map((item) => (
-            <div key={item._id} className="info-row-card neu-card">
-              <div className="info-row-left">
-                <h3>Mahasiswa ID: {item.studentId || "-"}</h3>
-                <p>
-                  {new Date(item.date).toLocaleDateString("id-ID", {
-                    day: "numeric",
-                    month: "long",
-                    year: "numeric",
-                  })}
-                </p>
-              </div>
+          {attendanceData.map((item) => {
+            const studentName = getStudentName(item.studentId);
+            const studentNpm = getStudentNpm(item.studentId);
 
-              <div className="info-row-meta">
-                <span className="neu-pill" style={{ textTransform: "capitalize" }}>
-                  {item.status}
-                </span>
+            return (
+              <div key={item._id} className="info-row-card neu-card">
+                <div className="info-row-left">
+                  <h3>Mahasiswa: {studentName}</h3>
+
+                  {studentNpm && (
+                    <p>NPM: {studentNpm}</p>
+                  )}
+
+                  <p>
+                    {new Date(item.date).toLocaleDateString("id-ID", {
+                      day: "numeric",
+                      month: "long",
+                      year: "numeric",
+                    })}
+                  </p>
+                </div>
+
+                <div className="info-row-meta">
+                  <span className="neu-pill" style={{ textTransform: "capitalize" }}>
+                    {item.status}
+                  </span>
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>

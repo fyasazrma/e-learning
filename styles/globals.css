@@ -1482,3 +1482,200 @@ html.dark {
     align-items: flex-start;
   }
 }
+
+/* ===== FINAL MOBILE RESPONSIVE FIX ===== */
+
+html,
+body {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+img,
+video,
+canvas,
+svg {
+  max-width: 100%;
+}
+
+@media (max-width: 768px) {
+  body {
+    overflow-x: hidden;
+  }
+
+  .page-container {
+    width: 100%;
+    max-width: 100%;
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+
+  .dashboard-layout {
+    display: block !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    overflow-x: hidden !important;
+    padding: 14px !important;
+  }
+
+  .dashboard-sidebar,
+  .sidebar,
+  aside {
+    position: relative !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    height: auto !important;
+    margin: 0 0 18px 0 !important;
+    border-radius: 24px !important;
+  }
+
+  .dashboard-main,
+  main {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    padding: 0 !important;
+    overflow-x: hidden !important;
+  }
+
+  .dashboard-topbar,
+  .dashboard-card,
+  .stat-card,
+  .progress-card,
+  .activity-card,
+  .quick-action-card,
+  .neu-card,
+  .info-row-card {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    overflow-wrap: break-word;
+  }
+
+  .dashboard-grid,
+  .stats-grid,
+  .hero-grid,
+  .popular-grid,
+  .testimonials-grid,
+  .roles-grid-upgrade,
+  .profile-grid-summary,
+  .profile-insight-grid {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  .landing-hero,
+  .hero-section,
+  .landing-section,
+  .hero-preview,
+  .preview-card,
+  .landing-card {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    overflow-x: hidden !important;
+    transform: none !important;
+  }
+
+  .auth-card-grid {
+    grid-template-columns: 1fr !important;
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  h1 {
+    font-size: clamp(2rem, 10vw, 3rem) !important;
+    line-height: 1.15 !important;
+    word-break: break-word;
+  }
+
+  h2 {
+    font-size: clamp(1.35rem, 7vw, 2rem) !important;
+    line-height: 1.2 !important;
+  }
+
+  h3 {
+    font-size: clamp(1rem, 5vw, 1.35rem) !important;
+  }
+
+  p,
+  span,
+  a,
+  button {
+    word-break: break-word;
+  }
+
+  .dashboard-topbar {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 14px !important;
+  }
+
+  .topbar-title,
+  .profile-info,
+  .sidebar-profile,
+  .profile-box,
+  .sidebar-user,
+  .sidebar-account {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  .profile-dropdown-menu {
+    right: 0 !important;
+    left: auto !important;
+    max-width: calc(100vw - 32px) !important;
+  }
+
+  .chatbot-window {
+    width: calc(100vw - 28px) !important;
+    max-width: calc(100vw - 28px) !important;
+    right: 14px !important;
+    left: 14px !important;
+    bottom: 86px !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .dashboard-layout {
+    padding: 10px !important;
+  }
+
+  .dashboard-card,
+  .neu-card,
+  .info-row-card {
+    border-radius: 18px !important;
+    padding: 16px !important;
+  }
+
+  .dashboard-sidebar,
+  .sidebar,
+  aside {
+    border-radius: 20px !important;
+    padding: 18px !important;
+  }
+
+  .neu-button,
+  button.neu-button,
+  .auth-primary-btn {
+    width: 100%;
+  }
+
+  .section-space {
+    padding: 48px 0;
+  }
+
+  .section-title {
+    font-size: 1.6rem;
+  }
+
+  .section-subtitle {
+    font-size: 0.95rem;
+    margin-bottom: 28px;
+  }
+}
